@@ -34,10 +34,10 @@ rule Loader_Synthetic_CommodityDropper
     strings:
         $drop_dir  = "\\AppData\\Roaming\\Microsoft\\Windows\\" ascii wide
         $drop_name = "wupdate.exe" ascii wide nocase
-        $run_key   = "Software\\Microsoft\\Windows\\CurrentVersion\\Run" ascii wide
+        $run_key   = "Software\\Microsoft\\Windows\\CurrentVersion\\Run" ascii wide nocase
         $run_value = "WindowsUpdateSvc" ascii wide
-        $c2_path   = "/gate/checkin.php" ascii
-        $ua        = "Loader/1.0 (compatible; Updater)" ascii
+        $c2_path   = "/gate/checkin.php" ascii wide
+        $ua        = "Loader/1.0 (compatible; Updater)" ascii wide
         $mutex     = "Global\\a1b2c3d4-9e8f-synthetic-loader" ascii wide
 
     condition:
@@ -57,16 +57,18 @@ rule Loader_Synthetic_CommodityDropper
   both because the Win32 path APIs are usually the wide (UTF-16) variants, so
   the string often lives in the file twice.
 - **`$run_key`** — the persistence anchor. I *require* it, but I never let it
-  fire alone (see the condition). I leave `nocase` off here; the API path string
-  is stable, and loosening it only invites noise.
+  fire alone (see the condition). I keep `nocase` on it: the Run-key path shows
+  up written `SOFTWARE\Microsoft\...` about as often as `Software\...`, and
+  since this string is mandatory a case mismatch alone would sink the rule.
 - **`$run_value`** — the specific value name the loader registers. This is
   family-specific in a way the key path is not: millions of programs write the
   Run key, far fewer name their value `WindowsUpdateSvc` *while living in
   AppData*.
 - **`$c2_path` / `$ua`** — the network half: the beacon URI path and the bespoke
-  User-Agent. These are the strings most likely to be shared across builds of
-  the same family even after the C2 host rotates, so they're what I lean on for
-  "is this the same author."
+  User-Agent, both `ascii wide` because a WinHTTP/WinINet client usually carries
+  the User-Agent (and often the path) as UTF-16. These are the strings most
+  likely to be shared across builds of the same family even after the C2 host
+  rotates, so they're what I lean on for "is this the same author."
 - **`$mutex`** — the single-instance guard. Loaders set one so two copies don't
   trip over each other. The GUID-ish literal is distinctive enough to be worth a
   lot by itself.

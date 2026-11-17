@@ -27,7 +27,7 @@ description: |
 references:
     - https://github.com/runaigyuana/pe-detections-notes/blob/main/sigma-from-behaviour.md
 author: runaigyuana
-date: 2026/11/17
+date: 2026-11-17
 tags:
     - attack.persistence
     - attack.t1547.001
@@ -41,12 +41,16 @@ detection:
         Image|contains:
             - '\AppData\Roaming\'
             - '\AppData\Local\'
+    selection_target_appdata:
+        Details|contains:
+            - '\AppData\Roaming\'
+            - '\AppData\Local\'
     filter_known_updaters:
         Image|endswith:
             - '\OneDrive.exe'
             - '\Update.exe'   # Squirrel / Electron per-user updaters
             - '\Teams.exe'
-    condition: selection_run_value and selection_from_appdata and not filter_known_updaters
+    condition: selection_run_value and (selection_from_appdata or selection_target_appdata) and not filter_known_updaters
 fields:
     - Image
     - TargetObject
@@ -69,11 +73,16 @@ level: medium
   scopes the rule to `Run` and leaves out `RunOnce` / `RunServices`: their
   false-positive profiles differ (RunOnce self-deletes after one boot), so if I
   want those I give each its own rule rather than widening this one.
-- **`selection_from_appdata`** is the discriminator. The persistence write is
-  only interesting because of *who* wrote it. A process image under
-  `\AppData\Roaming\` or `\AppData\Local\` writing an autostart value is the
-  loader's shape.
-- **`condition: ... and not filter_known_updaters`** ANDs the two positives and
+- **`selection_from_appdata`** is the discriminator by *who* wrote it: a process
+  image under `\AppData\Roaming\` or `\AppData\Local\` writing an autostart value
+  is the loader's shape.
+- **`selection_target_appdata`** covers *what* was written. `Image` is only the
+  writing process, so a loader that drops its AppData copy while still running
+  from `Downloads`, or a value set through `reg.exe`, would slip past the image
+  check. Matching the Run value's data (`Details`) when it points back into
+  AppData catches those — which is why the condition ORs the two.
+- **`condition: ... and not filter_known_updaters`** requires the Run-key write,
+  ORs the two AppData tells (writer-in-AppData or target-in-AppData), and
   subtracts the handful of legitimate programs that genuinely do this. That
   exclusion list is environment-specific, and I expect to grow it the first week
   it's live. One caveat I keep front of mind: the exclusion is `Image|endswith`,
