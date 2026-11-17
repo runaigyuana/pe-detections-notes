@@ -65,7 +65,10 @@ level: medium
   up as `HKU\<SID>\SOFTWARE\...\CurrentVersion\Run\<value>`. Matching the
   `\CurrentVersion\Run\` fragment catches that without me hardcoding a SID, and
   the trailing backslash keeps it on the Run *key* rather than some unrelated
-  value merely named `Run...`.
+  value merely named `Run...`. That same trailing backslash also, by design,
+  scopes the rule to `Run` and leaves out `RunOnce` / `RunServices`: their
+  false-positive profiles differ (RunOnce self-deletes after one boot), so if I
+  want those I give each its own rule rather than widening this one.
 - **`selection_from_appdata`** is the discriminator. The persistence write is
   only interesting because of *who* wrote it. A process image under
   `\AppData\Roaming\` or `\AppData\Local\` writing an autostart value is the
