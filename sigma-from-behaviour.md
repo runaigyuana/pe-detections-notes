@@ -76,7 +76,11 @@ level: medium
 - **`condition: ... and not filter_known_updaters`** ANDs the two positives and
   subtracts the handful of legitimate programs that genuinely do this. That
   exclusion list is environment-specific, and I expect to grow it the first week
-  it's live.
+  it's live. One caveat I keep front of mind: the exclusion is `Image|endswith`,
+  so a payload simply *renamed* to `OneDrive.exe` under AppData would slip
+  through it. Where the estate allows I pin the full install path (e.g.
+  `\Microsoft\OneDrive\OneDrive.exe`) or gate the exclusion on a signer check,
+  so a rename alone can't buy its way out.
 
 ## The false-positive tradeoff, honestly
 
